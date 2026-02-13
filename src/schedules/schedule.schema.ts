@@ -6,13 +6,13 @@ export type ScheduleDocument = Schedule & Document;
 @Schema()
 export class Schedule {
   @Prop({ required: true })
-  hari: string; // Senin, Selasa, dll
+  hari: string;
 
   @Prop({ required: true })
-  jam: string; // 07:00 - 09:00
+  jam: string;
 
   @Prop({ required: true })
-  kelas: string; // RPL, AKL, dll
+  kelas: string;
 
   @Prop({ required: true })
   mapel: string;

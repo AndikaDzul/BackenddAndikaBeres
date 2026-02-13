@@ -3,22 +3,43 @@ import { Document } from 'mongoose';
 
 export type StudentDocument = Student & Document;
 
+export interface Attendance {
+  status: string;
+  timestamp: Date;
+  method?: string;
+  mapel?: string;
+  jam?: string;
+  day?: string;
+  kelas?: string;
+}
+
 @Schema({ timestamps: true })
 export class Student {
   @Prop({ required: true, unique: true })
   nis: string;
 
-  @Prop()
+  @Prop({ required: true })
   name: string;
 
   @Prop()
   class: string;
 
-  @Prop({ default: 'Belum Absen' })
+  @Prop({ required: true })
+  password: string;
+
+  @Prop({ default: '' })
   status: string;
 
-  @Prop({ type: [{ status: String, timestamp: Date }] })
-  attendanceHistory: { status: string; timestamp: Date }[];
+  @Prop({ type: [{ 
+    status: String, 
+    timestamp: Date, 
+    method: String, 
+    mapel: String, 
+    jam: String, 
+    day: String,
+    kelas: String
+  }]})
+  attendanceHistory: Attendance[];
 }
 
 export const StudentSchema = SchemaFactory.createForClass(Student);

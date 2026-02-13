@@ -1,11 +1,33 @@
-import { IsOptional, IsString, IsDateString } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateAttendanceDto {
-  @IsOptional()
   @IsString()
-  status?: string; // Hadir / Sakit / Izin / dll
+  @IsNotEmpty()
+  status: string;
+
+  @IsString()
+  @IsOptional()
+  nis?: string;
+
+  @IsString()
+  @IsOptional()
+  teacherName?: string; 
+
+  @IsString()
+  @IsOptional()
+  method?: string;
+
+  @IsString()
+  @IsOptional()
+  mapel?: string;
+
+  @IsString()
+  @IsOptional()
+  timestamp?: string;
 
   @IsOptional()
-  @IsDateString()
-  timestamp?: string; // ISO date
+  jam?: string;
+
+  @IsOptional()
+  day?: string;
 }

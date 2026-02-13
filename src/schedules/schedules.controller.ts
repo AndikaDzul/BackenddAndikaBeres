@@ -1,25 +1,19 @@
 import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { SchedulesService } from './schedules.service';
-import { Schedule } from './schedule.schema';
+import { CreateScheduleDto } from './dto/create-schedule.dto';
 
 @Controller('schedules')
 export class SchedulesController {
   constructor(private readonly service: SchedulesService) {}
 
   @Post()
-  async create(@Body() schedule: Partial<Schedule>) {
-    return this.service.create(schedule);
-  }
+  async create(@Body() schedule: CreateScheduleDto) { return this.service.create(schedule); }
 
   @Get()
-  async findAll() {
-    return this.service.findAll();
-  }
+  async findAll() { return this.service.findAll(); }
 
   @Get('day/:day')
-  async findByDay(@Param('day') day: string) {
-    return this.service.findByDay(day); // Sekarang tidak error
-  }
+  async findByDay(@Param('day') day: string) { return this.service.findByDay(day); }
 
   @Get('class/:kelas/day/:day')
   async getScheduleForClass(@Param('kelas') kelas: string, @Param('day') day: string) {

@@ -6,12 +6,18 @@ import { CreateAttendanceDto } from '../students/dto/create-attendance.dto';
 export class AttendanceService {
   constructor(private readonly studentsService: StudentsService) {}
 
+  // Tandai absensi siswa
   async markAttendance(nis: string, body: CreateAttendanceDto) {
-    return this.studentsService.markAttendance(nis, body);
+    return this.studentsService.createAttendance(nis, body);
   }
 
+  // Reset semua absensi siswa
   async resetAllAttendance() {
-    return this.studentsService.resetAllAttendanceByGuru();
+    return this.studentsService.resetAllAttendance();
+  }
 
+  // Reset absensi 1 siswa (opsional, bisa dipanggil dari controller)
+  async resetStudentAttendance(nis: string) {
+    return this.studentsService.resetOneAttendance(nis);
   }
 }

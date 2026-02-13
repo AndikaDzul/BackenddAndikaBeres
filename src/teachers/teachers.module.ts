@@ -1,21 +1,13 @@
-import { Module } from '@nestjs/common'
-import { MongooseModule } from '@nestjs/mongoose'
-import { JwtModule } from '@nestjs/jwt'
-
-import { Teacher, TeacherSchema } from './teacher.schema'
-import { TeachersService } from './teachers.service'
-import { TeachersController } from './teachers.controller'
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { Teacher, TeacherSchema } from './teacher.schema';
+import { TeachersService } from './teachers.service';
+import { TeachersController } from './teachers.controller';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([{ name: Teacher.name, schema: TeacherSchema }]),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'RAHASIA_JWT_MU',
-      signOptions: { expiresIn: '1h' },
-    }),
-  ],
-  controllers: [TeachersController],
+  imports: [MongooseModule.forFeature([{ name: Teacher.name, schema: TeacherSchema }])],
   providers: [TeachersService],
-  exports: [TeachersService, MongooseModule],
+  controllers: [TeachersController],
+  exports: [TeachersService],
 })
 export class TeachersModule {}

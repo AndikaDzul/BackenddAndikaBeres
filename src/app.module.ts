@@ -2,28 +2,26 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 
-// Import semua module yang ada
+// Modules
 import { StudentsModule } from './students/students.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { TeachersModule } from './teachers/teachers.module';
 import { AdminsModule } from './admins/admins.module';
 import { SchedulesModule } from './schedules/schedules.module';
-import { ConfigModule } from './config/config.module'; // GPS Config Module
+import { ConfigModule } from './config/config.module';
 
 @Module({
   imports: [
-    // Config global (ENV)
+    // ENV global
     NestConfigModule.forRoot({ isGlobal: true }),
 
     // Koneksi MongoDB
     MongooseModule.forRoot(
       process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/absensi',
-      {
-        autoCreate: true, // buat database otomatis kalau belum ada
-      },
+      { autoCreate: true },
     ),
 
-    // Semua modul aplikasi
+    // App Modules
     StudentsModule,
     AttendanceModule,
     TeachersModule,

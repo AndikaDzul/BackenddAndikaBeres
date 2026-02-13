@@ -1,3 +1,4 @@
+// src/students/student.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
@@ -7,6 +8,9 @@ export interface Attendance {
   status: string;
   timestamp: Date;
   method?: string;
+  mapel?: string;
+  jam?: string;
+  day?: string;
 }
 
 @Schema({ timestamps: true })
@@ -21,12 +25,12 @@ export class Student {
   class: string;
 
   @Prop({ required: true })
-  password: string;  // <-- wajib ditambahkan
+  password: string;
 
-  @Prop({ default: '' })
+  @Prop({ default: 'Belum Absen' })
   status: string;
 
-  @Prop({ type: [{ status: String, timestamp: Date, method: String }] })
+  @Prop({ type: [{ status: String, timestamp: Date, method: String, mapel: String, jam: String, day: String }] })
   attendanceHistory: Attendance[];
 }
 

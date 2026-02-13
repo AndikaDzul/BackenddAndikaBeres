@@ -5,10 +5,10 @@ export type ConfigDocument = Config & Document;
 
 @Schema()
 export class Config {
-  @Prop()
+  @Prop({ default: 0 })
   lat: number;
 
-  @Prop()
+  @Prop({ default: 0 })
   lng: number;
 
   @Prop({ default: 50 })

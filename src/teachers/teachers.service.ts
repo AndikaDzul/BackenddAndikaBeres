@@ -6,7 +6,9 @@ import { Teacher, TeacherDocument } from './teacher.schema';
 
 @Injectable()
 export class TeachersService {
-  constructor(@InjectModel(Teacher.name) private teacherModel: Model<TeacherDocument>) {}
+  constructor(
+    @InjectModel(Teacher.name) private teacherModel: Model<TeacherDocument>,
+  ) {}
 
   async findAll(): Promise<Teacher[]> {
     return this.teacherModel.find().exec();
@@ -31,5 +33,11 @@ export class TeachersService {
     const match = await bcrypt.compare(password, teacher.password);
     if (!match) throw new Error('Password salah');
     return teacher;
+  }
+
+  async remove(email: string) {
+    const result = await this.teacherModel.deleteOne({ email });
+    if (result.deletedCount === 0) throw new NotFoundException('Guru tidak ditemukan');
+    return { message: 'Guru berhasil dihapus' };
   }
 }

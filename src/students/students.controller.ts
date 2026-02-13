@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
 import { StudentsService } from './students.service';
+import { CreateStudentDto } from './dto/create-students.dto';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
 
 @Controller('students')
@@ -16,6 +17,20 @@ export class StudentsController {
     return this.studentsService.findOne(nis);
   }
 
+  @Post('login')
+  async login(@Body() body: { nis: string; password: string }) {
+    const { nis, password } = body;
+    const student = await this.studentsService.login(nis, password);
+    if (!student) return { success: false, message: 'NIS atau password salah' };
+    return { success: true, student };
+  }
+
+  @Post()
+  create(@Body() dto: CreateStudentDto) {
+    return this.studentsService.create(dto);
+  }
+
+  // Endpoint untuk scan QR oleh Siswa
   @Post('attendance/:nis')
   createAttendance(
     @Param('nis') nis: string,
@@ -24,12 +39,26 @@ export class StudentsController {
     return this.studentsService.createAttendance(nis, body);
   }
 
-  // ================= LOGIN SISWA =================
-  @Post('login')
-  async login(@Body() body: { nis: string; password: string }) {
-    const { nis, password } = body;
-    const student = await this.studentsService.login(nis, password);
-    if (!student) return { success: false, message: 'NIS atau password salah' };
-    return { success: true, student };
+  // ================= ENDPOINT TAMBAHAN UNTUK GURU =================
+
+  // Endpoint untuk Update Manual (Sakit, Izin, Alfa)
+  // URL: POST /students/absensi-manual
+  @Post('absensi-manual')
+  async updateManual(
+    @Body() body: { nis: string; status: string; teacherName: string },
+  ) {
+    return this.studentsService.updateManual(body.nis, body.status, body.teacherName);
+  }
+
+  // Endpoint untuk Reset Semua Data Kehadiran
+  // URL: POST /students/reset
+  @Post('reset')
+  async resetAll() {
+    return this.studentsService.resetAllAttendance();
+  }
+
+  @Delete(':nis')
+  remove(@Param('nis') nis: string) {
+    return this.studentsService.remove(nis);
   }
 }

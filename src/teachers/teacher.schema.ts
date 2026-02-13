@@ -17,7 +17,7 @@ export class Teacher {
   @Prop({ required: true })
   password: string;
 
-  @Prop({ default: 'teacher' }) // tambahkan role
+  @Prop({ default: 'teacher' })
   role: string;
 }
 

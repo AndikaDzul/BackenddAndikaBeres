@@ -11,6 +11,7 @@ export interface Attendance {
   jam?: string;
   day?: string;
   kelas?: string;
+  evidencePath?: string; // TAMBAHKAN INI
 }
 
 @Schema({ timestamps: true })
@@ -27,18 +28,23 @@ export class Student {
   @Prop({ required: true })
   password: string;
 
-  @Prop({ default: '' })
+  @Prop({ default: 'Belum Absen' })
   status: string;
 
-  @Prop({ type: [{ 
-    status: String, 
-    timestamp: Date, 
-    method: String, 
-    mapel: String, 
-    jam: String, 
-    day: String,
-    kelas: String
-  }]})
+  @Prop({
+    type: [
+      {
+        status: String,
+        timestamp: Date,
+        method: String,
+        mapel: String,
+        jam: String,
+        day: String,
+        kelas: String,
+        evidencePath: String, // WAJIB ADA DI SINI AGAR TIDAK HILANG SAAT SAVE
+      },
+    ],
+  })
   attendanceHistory: Attendance[];
 }
 

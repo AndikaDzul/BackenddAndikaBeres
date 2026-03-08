@@ -1,29 +1,44 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import * as os from 'os';
+import * as fs from 'fs'; // Tambahkan fs untuk cek folder
 
 async function bootstrap() {
   try {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-    // =====================
-    // Prefix API
-    // =====================
     app.setGlobalPrefix('api');
 
-    // =====================
-    // CORS
-    // =====================
+    // ============================================================
+    // 1. PASTIKAN FOLDER UPLOADS ADA (Mencegah Error 404)
+    // ============================================================
+    const uploadDir = join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+      console.log('📁 Folder uploads berhasil dibuat otomatis.');
+    }
+
+    // ============================================================
+    // 2. SERVE STATIC FILES (DENGAN PATH YANG LEBIH AKURAT)
+    // process.cwd() memastikan kita mencari dari folder root project
+    // ============================================================
+    app.useStaticAssets(join(process.cwd(), 'uploads'), {
+      prefix: '/uploads/',
+      // Tambahkan header cache agar loading lebih cepat
+      setHeaders: (res) => {
+        res.set('Access-Control-Allow-Origin', '*');
+      },
+    });
+
     app.enableCors({
       origin: '*',
       methods: ['GET', 'POST', 'PATCH', 'DELETE'],
       allowedHeaders: ['Content-Type', 'Authorization'],
     });
 
-    // =====================
-    // Global Validation Pipe
-    // =====================
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -46,9 +61,10 @@ async function bootstrap() {
       }
     }
 
-    console.log(`🚀 Backend running:`);
+    console.log(`🚀 Backend ZieSen running:`);
     console.log(`👉 Local   : http://localhost:${port}/api`);
     console.log(`👉 Network : http://${localIp}:${port}/api`);
+    console.log(`👉 Static  : http://localhost:${port}/uploads/ (Akses Foto)`);
 
   } catch (err) {
     console.error('❌ Error starting server:', err);

@@ -12,33 +12,39 @@ export class StudentsService {
     @InjectModel(Student.name) private studentModel: Model<StudentDocument>,
   ) {}
 
-  // ================= CREATE SISWA =================
   async create(dto: CreateStudentDto): Promise<Student> {
     const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const input = dto as any;
+    const grade = input.grade || '';
+    const major = input.major || '';
+    const classNumber = input.classNumber || '';
+    const combinedClass = dto.class || `${grade} ${major} ${classNumber}`.trim();
+
     const student = new this.studentModel({
       nis: dto.nis,
       name: dto.name,
-      class: dto.class,
+      class: combinedClass,
+      grade: grade,
+      major: major,
+      classNumber: classNumber,
       password: hashedPassword,
       status: 'Belum Absen',
       attendanceHistory: [],
     });
+
     return student.save();
   }
 
-  // ================= GET ALL SISWA =================
   async findAll(): Promise<Student[]> {
     return this.studentModel.find().exec();
   }
 
-  // ================= GET ONE SISWA =================
   async findOne(nis: string): Promise<Student> {
     const student = await this.studentModel.findOne({ nis }).exec();
     if (!student) throw new Error('Siswa tidak ditemukan');
     return student;
   }
 
-  // ================= LOGIN SISWA =================
   async login(nis: string, password: string): Promise<Omit<Student, 'password'> | null> {
     const studentDoc = await this.studentModel.findOne({ nis }).exec();
     if (!studentDoc) return null;
@@ -49,7 +55,6 @@ export class StudentsService {
     return result;
   }
 
-  // ================= ABSENSI SCAN QR (SISWA) =================
   async createAttendance(nis: string, body: CreateAttendanceDto): Promise<Student> {
     const student = await this.studentModel.findOne({ nis }).exec();
     if (!student) throw new Error('Siswa tidak ditemukan');
@@ -62,6 +67,7 @@ export class StudentsService {
       mapel: body.mapel,
       jam: body.jam,
       day: body.day,
+      kelas: student.class,
     };
 
     if (!student.attendanceHistory) student.attendanceHistory = [];
@@ -71,7 +77,39 @@ export class StudentsService {
     return student.save();
   }
 
-  // ================= UPDATE MANUAL (GURU) - TAMBAHAN =================
+  // ================= VERSI FIX: SIMPAN PATH BUKTI & UPDATE STATUS =================
+  async saveEvidencePath(nis: string, filePath: string) {
+    const student = await this.studentModel.findOne({ nis }).exec();
+    if (!student) throw new Error('Siswa tidak ditemukan');
+
+    if (student.attendanceHistory && student.attendanceHistory.length > 0) {
+      const lastIndex = student.attendanceHistory.length - 1;
+      
+      // Menyeragamkan format path
+      const formattedPath = filePath.replace(/\\/g, '/');
+      
+      // Mengisi field evidencePath (Sudah terdaftar di Schema sekarang)
+      student.attendanceHistory[lastIndex].evidencePath = formattedPath;
+      
+      // Update status utama
+      student.status = 'Hadir (Bukti Terkirim)';
+
+      // Memberitahu Mongoose bahwa array attendanceHistory berubah
+      student.markModified('attendanceHistory');
+      
+      await student.save();
+      
+      return { 
+        success: true, 
+        message: 'Bukti berhasil disimpan di database',
+        status: student.status,
+        path: formattedPath 
+      };
+    } else {
+      throw new Error('Siswa harus melakukan scan QR terlebih dahulu sebelum upload bukti.');
+    }
+  }
+
   async updateManual(nis: string, status: string, teacherName: string): Promise<Student> {
     const student = await this.studentModel.findOne({ nis }).exec();
     if (!student) throw new Error('Siswa tidak ditemukan');
@@ -79,9 +117,10 @@ export class StudentsService {
     const attendance: Attendance = {
       status: status,
       timestamp: new Date(),
-      method: 'Manual by Teacher',
+      method: `Manual by ${teacherName}`,
       mapel: 'Input Manual',
       day: new Date().toLocaleDateString('id-ID', { weekday: 'long' }),
+      kelas: student.class,
     };
 
     if (!student.attendanceHistory) student.attendanceHistory = [];
@@ -91,7 +130,6 @@ export class StudentsService {
     return student.save();
   }
 
-  // ================= RESET SEMUA ABSENSI =================
   async resetAllAttendance(): Promise<Student[]> {
     await this.studentModel.updateMany(
       {},
@@ -100,7 +138,6 @@ export class StudentsService {
     return this.findAll();
   }
 
-  // ================= RESET 1 SISWA =================
   async resetOneAttendance(nis: string): Promise<Student> {
     const student = await this.studentModel.findOne({ nis }).exec();
     if (!student) throw new Error('Siswa tidak ditemukan');
@@ -109,7 +146,6 @@ export class StudentsService {
     return student.save();
   }
 
-  // ================= DELETE SISWA =================
   async remove(nis: string): Promise<{ message: string }> {
     const student = await this.studentModel.findOne({ nis }).exec();
     if (!student) throw new Error('Siswa tidak ditemukan');

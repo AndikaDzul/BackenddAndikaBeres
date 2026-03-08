@@ -6,32 +6,11 @@ import { join } from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
 
-// Tambahkan variabel untuk mengecek apakah sedang di Vercel
-const isVercel = process.env.VERCEL === '1';
-
 async function bootstrap() {
   try {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
     app.setGlobalPrefix('api');
-
-    // ============================================================
-    // 1. PASTIKAN FOLDER UPLOADS ADA (Hanya dijalankan jika BUKAN di Vercel)
-    // ============================================================
-    if (!isVercel) {
-      const uploadDir = join(process.cwd(), 'uploads');
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-        console.log('📁 Folder uploads berhasil dibuat otomatis.');
-      }
-
-      app.useStaticAssets(join(process.cwd(), 'uploads'), {
-        prefix: '/uploads/',
-        setHeaders: (res) => {
-          res.set('Access-Control-Allow-Origin', '*');
-        },
-      });
-    }
 
     app.enableCors({
       origin: '*',
@@ -48,13 +27,30 @@ async function bootstrap() {
     );
 
     // ============================================================
-    // LOGIKA STARTING SERVER
+    // LOGIKA PEMISAH LOCAL VS VERCEL (PENTING!)
     // ============================================================
+    
+    // Cek apakah sedang berjalan di Vercel
+    const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+
     if (!isVercel) {
-      // Jika di Local (PC), jalankan listen secara normal
+      // --- JALAN DI LOCAL ---
+      // 1. Handle Folder Uploads (Hanya di local karena Vercel Read-Only)
+      const uploadDir = join(process.cwd(), 'uploads');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      app.useStaticAssets(uploadDir, {
+        prefix: '/uploads/',
+        setHeaders: (res) => { res.set('Access-Control-Allow-Origin', '*'); },
+      });
+
+      // 2. Jalankan listen hanya jika di local
       const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
       await app.listen(port, '0.0.0.0');
 
+      // Log untuk local
       const interfaces = os.networkInterfaces();
       let localIp = 'localhost';
       for (const name of Object.keys(interfaces)) {
@@ -65,25 +61,21 @@ async function bootstrap() {
           }
         }
       }
-
-      console.log(`🚀 Backend ZieSen running:`);
-      console.log(`👉 Local   : http://localhost:${port}/api`);
-      console.log(`👉 Network : http://${localIp}:${port}/api`);
-      console.log(`👉 Static  : http://localhost:${port}/uploads/ (Akses Foto)`);
+      console.log(`🚀 Local: http://localhost:${port}/api`);
+      console.log(`👉 Network: http://${localIp}:${port}/api`);
     } else {
-      // Jika di Vercel, cukup inisialisasi aplikasi (Vercel yang akan handle port)
+      // --- JALAN DI VERCEL ---
+      // Jangan panggil app.listen()! Cukup init saja.
       await app.init();
-      return (app as any).getHttpAdapter().getInstance();
+      return app;
     }
 
   } catch (err) {
     console.error('❌ Error starting server:', err);
-    if (!isVercel) process.exit(1);
+    // Hanya exit jika bukan di vercel
+    if (process.env.VERCEL !== '1') process.exit(1);
   }
 }
 
-// Export bootstrap untuk kebutuhan Vercel (jika file index.ts kamu memanggil file ini)
-export const viteNodeApp = bootstrap();
-
-// Jalankan bootstrap
+// Eksekusi bootstrap
 bootstrap();

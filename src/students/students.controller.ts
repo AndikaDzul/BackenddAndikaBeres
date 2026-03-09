@@ -41,6 +41,12 @@ export class StudentsController {
     return this.studentsService.createAttendance(nis, body);
   }
 
+  // ================= ENDPOINT LOG PULANG =================
+  @Post('attendance/pulang/:nis')
+  async logPulang(@Param('nis') nis: string, @Body('timestamp') body: { timestamp: string }) {
+    return this.studentsService.createPulangLog(nis, body.timestamp);
+  }
+
   // ================= ENDPOINT UPLOAD BUKTI =================
   @Post('attendance/evidence/:nis')
   @UseInterceptors(

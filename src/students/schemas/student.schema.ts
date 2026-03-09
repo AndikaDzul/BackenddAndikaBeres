@@ -11,7 +11,7 @@ export interface Attendance {
   jam?: string;
   day?: string;
   kelas?: string;
-  evidencePath?: string; // TAMBAHKAN INI
+  evidencePath?: string;
 }
 
 @Schema({ timestamps: true })
@@ -31,6 +31,9 @@ export class Student {
   @Prop({ default: 'Belum Absen' })
   status: string;
 
+  @Prop()
+  lastPulang: Date; // Field baru untuk menyimpan waktu pulang terakhir
+
   @Prop({
     type: [
       {
@@ -41,7 +44,7 @@ export class Student {
         jam: String,
         day: String,
         kelas: String,
-        evidencePath: String, // WAJIB ADA DI SINI AGAR TIDAK HILANG SAAT SAVE
+        evidencePath: String,
       },
     ],
   })

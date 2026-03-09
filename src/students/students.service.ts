@@ -59,7 +59,12 @@ export class StudentsService {
     const student = await this.studentModel.findOne({ nis }).exec();
     if (!student) throw new Error('Siswa tidak ditemukan');
 
-    const timestamp = body.timestamp ? new Date(body.timestamp) : new Date();
+    // FIX: Tambahkan fallback jika body.timestamp undefined
+    let timestamp = new Date(body.timestamp ?? Date.now());
+    if (isNaN(timestamp.getTime())) {
+      timestamp = new Date();
+    }
+
     const attendance: Attendance = {
       status: body.status || 'Hadir',
       timestamp,
@@ -77,26 +82,58 @@ export class StudentsService {
     return student.save();
   }
 
-  // ================= VERSI FIX: SIMPAN PATH BUKTI & UPDATE STATUS =================
+  // ================= LOGIKA PULANG =================
+  async createPulangLog(nis: string, timestampStr: string): Promise<Student> {
+    const student = await this.studentModel.findOne({ nis }).exec() as any;
+    if (!student) throw new Error('Siswa tidak ditemukan');
+
+    // FIX: Tambahkan fallback jika timestampStr undefined
+    let timestamp = new Date(timestampStr ?? Date.now());
+    if (isNaN(timestamp.getTime())) {
+      timestamp = new Date();
+    }
+
+    const attendance: Attendance = {
+      status: 'Pulang',
+      timestamp: timestamp,
+      method: 'Siswa Self-Log',
+      mapel: 'Selesai KBM',
+      day: timestamp.toLocaleDateString('id-ID', { weekday: 'long' }),
+      kelas: student.class,
+    };
+
+    if (!student.attendanceHistory) student.attendanceHistory = [];
+    student.attendanceHistory.push(attendance);
+    
+    student.status = 'Pulang';
+    student.lastPulang = timestamp;
+
+    return student.save();
+  }
+
+  async resetOneAttendance(nis: string): Promise<Student> {
+    const student = await this.studentModel.findOne({ nis }).exec();
+    if (!student) throw new Error('Siswa tidak ditemukan');
+    
+    student.status = 'Belum Absen';
+    student.attendanceHistory = [];
+    (student as any).lastPulang = null;
+    
+    return student.save();
+  }
+
   async saveEvidencePath(nis: string, filePath: string) {
     const student = await this.studentModel.findOne({ nis }).exec();
     if (!student) throw new Error('Siswa tidak ditemukan');
 
     if (student.attendanceHistory && student.attendanceHistory.length > 0) {
       const lastIndex = student.attendanceHistory.length - 1;
-      
-      // Menyeragamkan format path
       const formattedPath = filePath.replace(/\\/g, '/');
       
-      // Mengisi field evidencePath (Sudah terdaftar di Schema sekarang)
       student.attendanceHistory[lastIndex].evidencePath = formattedPath;
-      
-      // Update status utama
       student.status = 'Hadir (Bukti Terkirim)';
 
-      // Memberitahu Mongoose bahwa array attendanceHistory berubah
       student.markModified('attendanceHistory');
-      
       await student.save();
       
       return { 
@@ -133,17 +170,9 @@ export class StudentsService {
   async resetAllAttendance(): Promise<Student[]> {
     await this.studentModel.updateMany(
       {},
-      { $set: { status: 'Belum Absen', attendanceHistory: [] } },
+      { $set: { status: 'Belum Absen', attendanceHistory: [], lastPulang: null } },
     );
     return this.findAll();
-  }
-
-  async resetOneAttendance(nis: string): Promise<Student> {
-    const student = await this.studentModel.findOne({ nis }).exec();
-    if (!student) throw new Error('Siswa tidak ditemukan');
-    student.status = 'Belum Absen';
-    student.attendanceHistory = [];
-    return student.save();
   }
 
   async remove(nis: string): Promise<{ message: string }> {

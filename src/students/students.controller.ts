@@ -5,7 +5,6 @@ import { CreateAttendanceDto } from './dto/create-attendance.dto';
 
 @Controller('students')
 export class StudentsController {
-
   constructor(private readonly studentsService: StudentsService) {}
 
   @Get()
@@ -20,22 +19,10 @@ export class StudentsController {
 
   @Post('login')
   async login(@Body() body: { nis: string; password: string }) {
-
     const { nis, password } = body;
-
     const student = await this.studentsService.login(nis, password);
-
-    if (!student) {
-      return {
-        success: false,
-        message: 'NIS atau password salah'
-      };
-    }
-
-    return {
-      success: true,
-      student
-    };
+    if (!student) return { success: false, message: 'NIS atau password salah' };
+    return { success: true, student };
   }
 
   @Post()
@@ -51,25 +38,21 @@ export class StudentsController {
     return this.studentsService.createAttendance(nis, body);
   }
 
-  // ================= LOG PULANG =================
+  // FIX: Menggunakan @Body() body: any agar lebih fleksibel menangkap timestamp
   @Post('attendance/pulang/:nis')
   async logPulang(
     @Param('nis') nis: string,
     @Body() body: { timestamp: string },
   ) {
-
-    return this.studentsService.createPulangLog(nis, body?.timestamp);
+    // Mengambil timestamp dari body object
+    return this.studentsService.createPulangLog(nis, body.timestamp);
   }
 
   @Post('absensi-manual')
   async updateManual(
     @Body() body: { nis: string; status: string; teacherName: string },
   ) {
-    return this.studentsService.updateManual(
-      body.nis,
-      body.status,
-      body.teacherName,
-    );
+    return this.studentsService.updateManual(body.nis, body.status, body.teacherName);
   }
 
   @Post('reset')
@@ -81,5 +64,4 @@ export class StudentsController {
   remove(@Param('nis') nis: string) {
     return this.studentsService.remove(nis);
   }
-
 }

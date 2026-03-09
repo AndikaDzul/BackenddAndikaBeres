@@ -72,7 +72,7 @@ export class StudentsService {
     return student.save();
   }
 
-  // ================= LOGIKA PULANG (NEW) =================
+  // ================= LOGIKA PULANG (BARU) =================
   async createPulangLog(nis: string, timestampStr: string): Promise<Student> {
     const student = await this.studentModel.findOne({ nis }).exec();
     if (!student) throw new NotFoundException('Siswa tidak ditemukan');
@@ -92,8 +92,8 @@ export class StudentsService {
     student.attendanceHistory.push(attendance);
     
     student.status = 'Pulang';
-    // Otomatis simpan jam sekarang agar muncul di profil
-    student.lastPulang = timestamp;
+    // Casting ke any untuk menghindari error TS saat assign Date ke field lastPulang
+    (student as any).lastPulang = timestamp;
 
     return student.save();
   }
@@ -135,7 +135,7 @@ export class StudentsService {
     
     student.status = 'Belum Absen';
     student.attendanceHistory = [];
-    // Casting ke any agar mengizinkan null saat reset
+    // Casting ke any agar mengizinkan null sesuai logic database
     (student as any).lastPulang = null;
     
     return student.save();

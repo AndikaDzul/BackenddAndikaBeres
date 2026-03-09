@@ -38,6 +38,7 @@ export class StudentsController {
     return this.studentsService.createAttendance(nis, body);
   }
 
+  // Route Log Pulang
   @Post('attendance/pulang/:nis')
   async logPulang(
     @Param('nis') nis: string,

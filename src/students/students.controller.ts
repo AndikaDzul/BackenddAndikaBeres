@@ -5,6 +5,7 @@ import { CreateAttendanceDto } from './dto/create-attendance.dto';
 
 @Controller('students')
 export class StudentsController {
+
   constructor(private readonly studentsService: StudentsService) {}
 
   @Get()
@@ -19,10 +20,22 @@ export class StudentsController {
 
   @Post('login')
   async login(@Body() body: { nis: string; password: string }) {
+
     const { nis, password } = body;
+
     const student = await this.studentsService.login(nis, password);
-    if (!student) return { success: false, message: 'NIS atau password salah' };
-    return { success: true, student };
+
+    if (!student) {
+      return {
+        success: false,
+        message: 'NIS atau password salah'
+      };
+    }
+
+    return {
+      success: true,
+      student
+    };
   }
 
   @Post()
@@ -30,6 +43,7 @@ export class StudentsController {
     return this.studentsService.create(dto);
   }
 
+  // ===== QR ABSENSI =====
   @Post('attendance/:nis')
   createAttendance(
     @Param('nis') nis: string,
@@ -38,30 +52,37 @@ export class StudentsController {
     return this.studentsService.createAttendance(nis, body);
   }
 
-  // FIX: Menggunakan @Body() body: any agar lebih fleksibel menangkap timestamp
+  // ===== LOG PULANG =====
   @Post('attendance/pulang/:nis')
   async logPulang(
     @Param('nis') nis: string,
     @Body() body: { timestamp: string },
   ) {
-    // Mengambil timestamp dari body object
-    return this.studentsService.createPulangLog(nis, body.timestamp);
+    return this.studentsService.createPulangLog(nis, body?.timestamp);
   }
 
+  // ===== ABSENSI MANUAL GURU =====
   @Post('absensi-manual')
   async updateManual(
     @Body() body: { nis: string; status: string; teacherName: string },
   ) {
-    return this.studentsService.updateManual(body.nis, body.status, body.teacherName);
+    return this.studentsService.updateManual(
+      body.nis,
+      body.status,
+      body.teacherName,
+    );
   }
 
+  // ===== RESET SEMUA =====
   @Post('reset')
   async resetAll() {
     return this.studentsService.resetAllAttendance();
   }
 
+  // ===== DELETE =====
   @Delete(':nis')
   remove(@Param('nis') nis: string) {
     return this.studentsService.remove(nis);
   }
+
 }

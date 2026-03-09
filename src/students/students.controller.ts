@@ -30,7 +30,6 @@ export class StudentsController {
     return this.studentsService.create(dto);
   }
 
-  // Endpoint untuk scan QR oleh Siswa
   @Post('attendance/:nis')
   createAttendance(
     @Param('nis') nis: string,
@@ -39,10 +38,14 @@ export class StudentsController {
     return this.studentsService.createAttendance(nis, body);
   }
 
-  // ================= ENDPOINT TAMBAHAN UNTUK GURU =================
+  @Post('attendance/pulang/:nis')
+  async logPulang(
+    @Param('nis') nis: string,
+    @Body('timestamp') timestamp: string,
+  ) {
+    return this.studentsService.createPulangLog(nis, timestamp);
+  }
 
-  // Endpoint untuk Update Manual (Sakit, Izin, Alfa)
-  // URL: POST /students/absensi-manual
   @Post('absensi-manual')
   async updateManual(
     @Body() body: { nis: string; status: string; teacherName: string },
@@ -50,8 +53,6 @@ export class StudentsController {
     return this.studentsService.updateManual(body.nis, body.status, body.teacherName);
   }
 
-  // Endpoint untuk Reset Semua Data Kehadiran
-  // URL: POST /students/reset
   @Post('reset')
   async resetAll() {
     return this.studentsService.resetAllAttendance();

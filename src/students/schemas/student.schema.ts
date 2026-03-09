@@ -27,8 +27,12 @@ export class Student {
   @Prop({ required: true })
   password: string;
 
-  @Prop({ default: '' })
+  @Prop({ default: 'Belum Absen' })
   status: string;
+
+  // PERBAIKAN: Mengizinkan Date atau null agar tidak error saat reset
+  @Prop({ type: Date, default: null })
+  lastPulang?: Date | null;
 
   @Prop({ type: [{ 
     status: String, 

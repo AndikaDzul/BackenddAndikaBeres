@@ -1,4 +1,3 @@
-// src/students/student.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
@@ -11,6 +10,7 @@ export interface Attendance {
   mapel?: string;
   jam?: string;
   day?: string;
+  kelas?: string;
 }
 
 @Schema({ timestamps: true })
@@ -30,7 +30,19 @@ export class Student {
   @Prop({ default: 'Belum Absen' })
   status: string;
 
-  @Prop({ type: [{ status: String, timestamp: Date, method: String, mapel: String, jam: String, day: String }] })
+  // Menambahkan properti lastPulang agar tersimpan di database
+  @Prop({ type: Date, default: null })
+  lastPulang: Date;
+
+  @Prop({ type: [{ 
+    status: String, 
+    timestamp: Date, 
+    method: String, 
+    mapel: String, 
+    jam: String, 
+    day: String,
+    kelas: String
+  }]})
   attendanceHistory: Attendance[];
 }
 

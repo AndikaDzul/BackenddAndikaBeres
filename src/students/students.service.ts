@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
@@ -34,7 +34,7 @@ export class StudentsService {
   // ================= GET ONE SISWA =================
   async findOne(nis: string): Promise<Student> {
     const student = await this.studentModel.findOne({ nis }).exec();
-    if (!student) throw new NotFoundException('Siswa tidak ditemukan');
+    if (!student) throw new Error('Siswa tidak ditemukan');
     return student;
   }
 
@@ -42,7 +42,7 @@ export class StudentsService {
   async login(nis: string, password: string): Promise<Omit<Student, 'password'> | null> {
     const studentDoc = await this.studentModel.findOne({ nis }).exec();
     if (!studentDoc) return null;
-    const student = studentDoc.toObject() as any;
+    const student = studentDoc.toObject() as Student & { password: string };
     const match = await bcrypt.compare(password, student.password);
     if (!match) return null;
     const { password: pwd, ...result } = student;
@@ -52,18 +52,16 @@ export class StudentsService {
   // ================= ABSENSI SCAN QR (SISWA) =================
   async createAttendance(nis: string, body: CreateAttendanceDto): Promise<Student> {
     const student = await this.studentModel.findOne({ nis }).exec();
-    if (!student) throw new NotFoundException('Siswa tidak ditemukan');
+    if (!student) throw new Error('Siswa tidak ditemukan');
 
     const timestamp = body.timestamp ? new Date(body.timestamp) : new Date();
-    
-    // Casting ke any untuk menghindari error property missing jika interface Attendance ketat
-    const attendance: any = {
+    const attendance: Attendance = {
       status: body.status || 'Hadir',
       timestamp,
       method: body.method || 'QR Scan',
-      mapel: body.mapel || 'Pelajaran Umum',
-      jam: body.jam || timestamp.toLocaleTimeString('id-ID'),
-      day: body.day || timestamp.toLocaleDateString('id-ID', { weekday: 'long' }),
+      mapel: body.mapel,
+      jam: body.jam,
+      day: body.day,
     };
 
     if (!student.attendanceHistory) student.attendanceHistory = [];
@@ -73,40 +71,15 @@ export class StudentsService {
     return student.save();
   }
 
-  // ================= LOGIKA PULANG (NEW) =================
-  async createPulangLog(nis: string, timestampStr: string): Promise<Student> {
-    const student = await this.studentModel.findOne({ nis }).exec();
-    if (!student) throw new NotFoundException('Siswa tidak ditemukan');
-
-    const timestamp = timestampStr ? new Date(timestampStr) : new Date();
-    
-    const attendance: any = {
-      status: 'Pulang',
-      timestamp: timestamp,
-      method: 'Siswa Self-Log',
-      mapel: 'Selesai KBM',
-      day: timestamp.toLocaleDateString('id-ID', { weekday: 'long' }),
-    };
-
-    if (!student.attendanceHistory) student.attendanceHistory = [];
-    student.attendanceHistory.push(attendance);
-    
-    student.status = 'Pulang';
-    // lastPulang disimpan agar bisa dibaca di frontend profile
-    (student as any).lastPulang = timestamp;
-
-    return student.save();
-  }
-
-  // ================= UPDATE MANUAL (GURU) =================
+  // ================= UPDATE MANUAL (GURU) - TAMBAHAN =================
   async updateManual(nis: string, status: string, teacherName: string): Promise<Student> {
     const student = await this.studentModel.findOne({ nis }).exec();
-    if (!student) throw new NotFoundException('Siswa tidak ditemukan');
+    if (!student) throw new Error('Siswa tidak ditemukan');
 
-    const attendance: any = {
+    const attendance: Attendance = {
       status: status,
       timestamp: new Date(),
-      method: `Manual by ${teacherName}`,
+      method: 'Manual by Teacher',
       mapel: 'Input Manual',
       day: new Date().toLocaleDateString('id-ID', { weekday: 'long' }),
     };
@@ -122,7 +95,7 @@ export class StudentsService {
   async resetAllAttendance(): Promise<Student[]> {
     await this.studentModel.updateMany(
       {},
-      { $set: { status: 'Belum Absen', attendanceHistory: [], lastPulang: null } },
+      { $set: { status: 'Belum Absen', attendanceHistory: [] } },
     );
     return this.findAll();
   }
@@ -130,17 +103,16 @@ export class StudentsService {
   // ================= RESET 1 SISWA =================
   async resetOneAttendance(nis: string): Promise<Student> {
     const student = await this.studentModel.findOne({ nis }).exec();
-    if (!student) throw new NotFoundException('Siswa tidak ditemukan');
+    if (!student) throw new Error('Siswa tidak ditemukan');
     student.status = 'Belum Absen';
     student.attendanceHistory = [];
-    (student as any).lastPulang = null;
     return student.save();
   }
 
   // ================= DELETE SISWA =================
   async remove(nis: string): Promise<{ message: string }> {
     const student = await this.studentModel.findOne({ nis }).exec();
-    if (!student) throw new NotFoundException('Siswa tidak ditemukan');
+    if (!student) throw new Error('Siswa tidak ditemukan');
     await this.studentModel.deleteOne({ nis }).exec();
     return { message: 'Siswa berhasil dihapus' };
   }

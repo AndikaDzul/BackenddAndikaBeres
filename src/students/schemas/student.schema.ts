@@ -15,7 +15,6 @@ export interface Attendance {
 
 @Schema({ timestamps: true })
 export class Student {
-
   @Prop({ required: true, unique: true })
   nis: string;
 
@@ -31,24 +30,16 @@ export class Student {
   @Prop({ default: '' })
   status: string;
 
-  // ================= TAMBAHAN AGAR JAM PULANG MUNCUL =================
-  @Prop({ default: null })
-  lastPulang: Date;
-
-  // ================= HISTORY ABSENSI =================
-  @Prop({
-    type: [{
-      status: String,
-      timestamp: Date,
-      method: String,
-      mapel: String,
-      jam: String,
-      day: String,
-      kelas: String
-    }]
-  })
+  @Prop({ type: [{ 
+    status: String, 
+    timestamp: Date, 
+    method: String, 
+    mapel: String, 
+    jam: String, 
+    day: String,
+    kelas: String
+  }]})
   attendanceHistory: Attendance[];
-
 }
 
 export const StudentSchema = SchemaFactory.createForClass(Student);

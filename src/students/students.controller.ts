@@ -1,7 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, UseInterceptors, UploadedFile, HttpException, HttpStatus } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-students.dto';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
@@ -33,44 +30,28 @@ export class StudentsController {
     return this.studentsService.create(dto);
   }
 
+  // Endpoint untuk scan QR oleh Siswa
   @Post('attendance/:nis')
   createAttendance(
     @Param('nis') nis: string,
     @Body() body: CreateAttendanceDto,
   ) {
-    // Menambahkan log untuk mempermudah debugging jika gagal
-    console.log('Attendance Request:', body);
     return this.studentsService.createAttendance(nis, body);
   }
 
-  @Post('attendance/pulang/:nis')
-  async logPulang(@Param('nis') nis: string, @Body() body: { timestamp: string }) {
-    // Mengambil timestamp dari body object
-    return this.studentsService.createPulangLog(nis, body.timestamp);
-  }
+  // ================= ENDPOINT TAMBAHAN UNTUK GURU =================
 
-  @Post('attendance/evidence/:nis')
-  @UseInterceptors(
-    FileInterceptor('evidence', {
-      storage: diskStorage({
-        destination: './uploads/evidence',
-        filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(null, `${uniqueSuffix}${extname(file.originalname)}`);
-        },
-      }),
-    }),
-  )
-  async uploadEvidence(@Param('nis') nis: string, @UploadedFile() file: Express.Multer.File) {
-    if (!file) throw new HttpException('Gagal upload file', HttpStatus.BAD_REQUEST);
-    return this.studentsService.saveEvidencePath(nis, file.path);
-  }
-
+  // Endpoint untuk Update Manual (Sakit, Izin, Alfa)
+  // URL: POST /students/absensi-manual
   @Post('absensi-manual')
-  async updateManual(@Body() body: { nis: string; status: string; teacherName: string }) {
+  async updateManual(
+    @Body() body: { nis: string; status: string; teacherName: string },
+  ) {
     return this.studentsService.updateManual(body.nis, body.status, body.teacherName);
   }
 
+  // Endpoint untuk Reset Semua Data Kehadiran
+  // URL: POST /students/reset
   @Post('reset')
   async resetAll() {
     return this.studentsService.resetAllAttendance();

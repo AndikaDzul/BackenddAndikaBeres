@@ -1,19 +1,16 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-// Interface untuk Record riwayat absensi
+export type StudentDocument = Student & Document;
+
 export interface Attendance {
-  day?: string;
-  date?: Date;
   status: string;
-  method: string;
   timestamp: Date;
-  teacherToken?: string;
+  method?: string;
   mapel?: string;
-  guru?: string;
-  kelas?: string;
   jam?: string;
-  evidencePath?: string;
+  day?: string;
+  kelas?: string;
 }
 
 @Schema({ timestamps: true })
@@ -27,35 +24,22 @@ export class Student {
   @Prop()
   class: string;
 
-  @Prop({ default: 'Belum Absen' })
+  @Prop({ required: true })
+  password: string;
+
+  @Prop({ default: '' })
   status: string;
 
-  @Prop()
-  password?: string;
-
-  @Prop()
-  lastPulang?: Date;
-
-  @Prop({
-    type: [
-      {
-        day: String,
-        date: Date,
-        status: String,
-        method: String,
-        timestamp: Date,
-        teacherToken: String,
-        mapel: String,
-        guru: String,
-        kelas: String,
-        jam: String,
-        evidencePath: String,
-      },
-    ],
-    default: [],
-  })
+  @Prop({ type: [{ 
+    status: String, 
+    timestamp: Date, 
+    method: String, 
+    mapel: String, 
+    jam: String, 
+    day: String,
+    kelas: String
+  }]})
   attendanceHistory: Attendance[];
 }
 
-export type StudentDocument = Student & Document;
 export const StudentSchema = SchemaFactory.createForClass(Student);

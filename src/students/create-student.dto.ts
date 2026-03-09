@@ -1,6 +1,7 @@
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator'
 
 export class CreateStudentDto {
+
   @IsNotEmpty()
   @IsString()
   name: string
@@ -20,17 +21,4 @@ export class CreateStudentDto {
   @IsOptional()
   @IsString()
   class?: string
-
-  // Tambahan Field Baru
-  @IsNotEmpty()
-  @IsString()
-  grade: string // X, XI, XII
-
-  @IsNotEmpty()
-  @IsString()
-  major: string // RPL, AKL, dll
-
-  @IsNotEmpty()
-  @IsString()
-  classNumber: string // 1, 2, 3
 }

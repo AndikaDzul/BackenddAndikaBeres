@@ -19,6 +19,10 @@ export class CreateAttendanceDto {
 
   @IsString()
   @IsOptional()
+  qrToken?: string; // TAMBAHKAN INI agar sesuai dengan frontend
+
+  @IsString()
+  @IsOptional()
   mapel?: string;
 
   @IsString()

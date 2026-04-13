@@ -103,35 +103,48 @@ export class StudentsService {
     let pointsChange = 28; // Reward default +28 point for attending
     let activity = `Absensi Hadir (${attendance.mapel})`;
     let type: 'reward' | 'deduction' = 'reward';
+    let usedVoucher = false;
 
-    // Cek telat absen (lewat 06:30)
-    // opsional: jika user mau lateness tetap -2 bisa dipertahankan, 
-    // tapi user minta "Hadir Mapel +28", jadi kita set +28 dulu.
-    
-    if (body.status === 'Alfa' || body.status === 'Izin' || body.status === 'Sakit') {
-      pointsChange = -27;
-      activity = `Absensi ${body.status} (${attendance.mapel})`;
-      type = 'deduction';
+    // Logic Pinalti & Voucher Protection
+    if (body.status === 'Alfa' || body.status === 'Izin' || body.status === 'Sakit' || body.status === 'Alpha') {
+      if (student.vouchersAlfa > 0) {
+        pointsChange = 0;
+        activity = `Voucher Digunakan: Proteksi ${body.status}`;
+        type = 'reward';
+        usedVoucher = true;
+      } else {
+        pointsChange = -27;
+        activity = `Absensi ${body.status} (${attendance.mapel})`;
+        type = 'deduction';
+      }
     }
 
-    const historyEntry = {
-      activity,
-      points: pointsChange,
-      category: type,
-      timestamp: new Date(),
+    const updateOps: any = {
+      $set: { status: attendance.status },
+      $push: { 
+        attendanceHistory: attendance,
+      },
     };
 
-    await this.studentModel.updateOne(
-      { nis },
-      {
-        $set: { status: attendance.status },
-        $inc: { points: pointsChange },
-        $push: { 
-          attendanceHistory: attendance,
-          pointHistory: historyEntry,
-        },
-      },
-    ).exec();
+    if (usedVoucher) {
+      updateOps.$inc = { vouchersAlfa: -1 };
+    }
+
+    if (pointsChange !== 0 || usedVoucher) {
+      if (pointsChange !== 0) {
+        if (!updateOps.$inc) updateOps.$inc = {};
+        updateOps.$inc.points = pointsChange;
+      }
+      if (!updateOps.$push) updateOps.$push = {};
+      updateOps.$push.pointHistory = {
+        activity,
+        points: pointsChange,
+        category: type,
+        timestamp: new Date(),
+      };
+    }
+
+    await this.studentModel.updateOne({ nis }, updateOps).exec();
 
     return this.findOne(nis);
   }
@@ -196,11 +209,20 @@ export class StudentsService {
     let pointsChange = 0;
     let activity = '';
     let type: 'reward' | 'deduction' = 'deduction';
+    let usedVoucher = false;
 
-    if (status === 'Alfa' || status === 'Izin') {
-      pointsChange = -27;
-      activity = `Absensi ${status} (Manual by ${teacherName})`;
-      type = 'deduction';
+    if (status === 'Alfa' || status === 'Izin' || status === 'Sakit' || status === 'Alpha') {
+      // Check for voucher protection
+      if (student.vouchersAlfa > 0) {
+        pointsChange = 0;
+        activity = `Voucher Digunakan: Proteksi ${status} (Manual)`;
+        type = 'reward';
+        usedVoucher = true;
+      } else {
+        pointsChange = -27;
+        activity = `Absensi ${status} (Manual by ${teacherName})`;
+        type = 'deduction';
+      }
     } else if (status === 'Hadir') {
       pointsChange = 28;
       activity = `Absensi Hadir (Manual by ${teacherName})`;
@@ -212,8 +234,16 @@ export class StudentsService {
       $push: { attendanceHistory: attendance },
     };
 
-    if (pointsChange !== 0) {
-      updateOps.$inc = { points: pointsChange };
+    if (usedVoucher) {
+      updateOps.$inc = { vouchersAlfa: -1 };
+    }
+
+    if (pointsChange !== 0 || usedVoucher) {
+      if (pointsChange !== 0) {
+        if (!updateOps.$inc) updateOps.$inc = {};
+        updateOps.$inc.points = pointsChange;
+      }
+      if (!updateOps.$push) updateOps.$push = {};
       updateOps.$push.pointHistory = {
         activity,
         points: pointsChange,
@@ -376,23 +406,47 @@ export class StudentsService {
     const student = await this.studentModel.findOne({ nis }).exec();
     if (!student) throw new NotFoundException('Siswa tidak ditemukan');
 
-    const pointsChange = type === 'mapel' ? -12 : -27;
-    const activity = description || (type === 'mapel' ? 'Terlewat Mapel' : 'Pinalti Absensi');
+    let pointsChange = type === 'mapel' ? -12 : -27;
+    let activity = description || (type === 'mapel' ? 'Terlewat Mapel' : 'Pinalti Absensi');
+    let category: 'reward' | 'deduction' = 'deduction';
+    let usedVoucher = false;
+    let voucherField = '';
+
+    if (type === 'mapel' && student.vouchersMapel > 0) {
+      pointsChange = 0;
+      activity = `Voucher Digunakan: Proteksi Terlewat Mapel`;
+      category = 'reward';
+      usedVoucher = true;
+      voucherField = 'vouchersMapel';
+    } else if (type !== 'mapel' && student.vouchersAlfa > 0) {
+      pointsChange = 0;
+      activity = `Voucher Digunakan: Proteksi Pinalti Absensi`;
+      category = 'reward';
+      usedVoucher = true;
+      voucherField = 'vouchersAlfa';
+    }
     
-    const historyEntry = {
-      activity,
-      points: pointsChange,
-      category: 'deduction' as const,
-      timestamp: new Date(),
+    const updateData: any = {
+      $push: { 
+        pointHistory: {
+          activity,
+          points: pointsChange,
+          category,
+          timestamp: new Date(),
+        }
+      }
     };
 
-    await this.studentModel.updateOne(
-      { nis },
-      { 
-        $inc: { points: pointsChange },
-        $push: { pointHistory: historyEntry }
-      }
-    ).exec();
+    if (usedVoucher) {
+      updateData.$inc = { [voucherField]: -1 };
+    }
+
+    if (pointsChange !== 0) {
+      if (!updateData.$inc) updateData.$inc = {};
+      updateData.$inc.points = pointsChange;
+    }
+
+    await this.studentModel.updateOne({ nis }, updateData).exec();
 
     return this.findOne(nis);
   }

@@ -10,6 +10,14 @@ export class AuthService {
     private teacherModel: Model<Teacher>,
   ) {}
 
+  /**
+   * Melakukan proses login untuk guru.
+   * Memvalidasi email dan password secara manual (tanpa bcrypt).
+   * @param email Email guru.
+   * @param password Password guru.
+   * @throws {UnauthorizedException} Jika email tidak ditemukan atau password salah.
+   * @returns Objek profil guru jika berhasil.
+   */
   async login(email: string, password: string) {
     const teacher = await this.teacherModel.findOne({ email })
 

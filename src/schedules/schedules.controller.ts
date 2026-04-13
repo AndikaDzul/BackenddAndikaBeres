@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
 import { SchedulesService } from './schedules.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 
@@ -18,5 +18,10 @@ export class SchedulesController {
   @Get('class/:kelas/day/:day')
   async getScheduleForClass(@Param('kelas') kelas: string, @Param('day') day: string) {
     return this.service.getScheduleForClass(kelas, day);
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    return this.service.remove(id);
   }
 }

@@ -10,6 +10,12 @@ export class ConfigService {
     @InjectModel(Config.name) private configModel: Model<ConfigDocument>
   ) {}
 
+  /**
+   * Mengambil konfigurasi GPS dari MongoDB.
+   * Jika tidak ada, fungsi ini akan membuat konfigurasi default.
+   * Menjamin nilai yang dikembalikan memiliki format radius yang benar.
+   * @returns {Promise<any>} Objek konfigurasi GPS untuk dua lokasi.
+   */
   async getGpsConfig(): Promise<any> {
     let config = await this.configModel.findOne().lean().exec(); // ✅ .lean() untuk plain object
     
@@ -42,6 +48,12 @@ export class ConfigService {
     return result;
   }
 
+  /**
+   * Memperbarui konfigurasi GPS di database.
+   * Mendukung pembaruan loc1, loc2, dan backward compatibility.
+   * @param data Data konfigurasi baru yang dikirim dari klien.
+   * @returns {Promise<any>} Objek konfigurasi yang baru disimpan.
+   */
   async saveGpsConfig(data: any): Promise<any> {
     let config = await this.configModel.findOne().exec();
     

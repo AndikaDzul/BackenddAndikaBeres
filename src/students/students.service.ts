@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
@@ -6,11 +6,13 @@ import * as bcrypt from 'bcrypt';
 import { Student, StudentDocument } from './schemas/student.schema';
 import { CreateStudentDto } from './dto/create-students.dto';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
+import { EvaluationsService } from '../evaluations/evaluations.service';
 
 @Injectable()
 export class StudentsService {
   constructor(
     @InjectModel(Student.name) private studentModel: Model<StudentDocument>,
+    private readonly evaluationsService: EvaluationsService,
   ) {}
 
   // ================= CREATE SISWA =================
@@ -22,40 +24,64 @@ export class StudentsService {
       class: dto.class,
       password: hashedPassword,
       status: 'Belum Absen',
+      points: 100,
       attendanceHistory: [],
     });
     return student.save();
   }
 
-  // ================= GET ALL SISWA =================
-  async findAll(): Promise<Student[]> {
-    return this.studentModel.find().exec();
+  // ================= GET ALL SISWA (DENGAN PENILAIAN) =================
+  async findAll(): Promise<any[]> {
+    const students = await this.studentModel.find().exec();
+
+    const studentsWithEvaluation = await Promise.all(
+      students.map(async (student) => {
+        const studentObj = student.toObject();
+        const evaluations = await this.evaluationsService.findByStudent(student.nis);
+        return {
+          ...studentObj,
+          // Mengambil evaluasi terbaru (index 0 jika diurutkan descending di service)
+          lastEvaluation: evaluations.length > 0 ? evaluations[0] : null,
+        };
+      }),
+    );
+
+    return studentsWithEvaluation;
   }
 
-  // ================= GET ONE SISWA =================
-  async findOne(nis: string): Promise<Student> {
+  // ================= GET ONE SISWA (DENGAN PENILAIAN) =================
+  async findOne(nis: string): Promise<any> {
     const student = await this.studentModel.findOne({ nis }).exec();
     if (!student) throw new NotFoundException('Siswa tidak ditemukan');
-    return student;
+
+    const evaluations = await this.evaluationsService.findByStudent(nis);
+    return {
+      ...student.toObject(),
+      lastEvaluation: evaluations.length > 0 ? evaluations[0] : null,
+    };
   }
 
   // ================= LOGIN SISWA =================
-  async login(nis: string, password: string): Promise<Omit<Student, 'password'> | null> {
+  async login(nis: string, password: string): Promise<any | null> {
     const studentDoc = await this.studentModel.findOne({ nis }).exec();
     if (!studentDoc) return null;
-    const student = studentDoc.toObject() as any;
-    const match = await bcrypt.compare(password, student.password);
+
+    const match = await bcrypt.compare(password, studentDoc.password);
     if (!match) return null;
-    const { password: pwd, ...result } = student;
-    return result;
+
+    // Menggunakan findOne(nis) agar data login sudah termasuk lastEvaluation
+    return this.findOne(nis);
   }
 
   // ================= ABSENSI QR =================
-  async createAttendance(nis: string, body: CreateAttendanceDto): Promise<Student> {
+  async createAttendance(nis: string, body: CreateAttendanceDto): Promise<any> {
     const student = await this.studentModel.findOne({ nis }).exec();
     if (!student) throw new NotFoundException('Siswa tidak ditemukan');
 
-    const timestamp = body.timestamp ? new Date(body.timestamp) : new Date();
+    let timestamp = body.timestamp ? new Date(body.timestamp) : new Date();
+    if (isNaN(timestamp.getTime())) {
+      timestamp = new Date(); // Fallback ke waktu sekarang jika input tidak valid
+    }
     const attendance: any = {
       status: body.status || 'Hadir',
       timestamp,
@@ -63,20 +89,55 @@ export class StudentsService {
       qrToken: body.qrToken,
       mapel: body.mapel || 'Pelajaran Umum',
       kelas: student.class,
-      jam: timestamp.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }),
-      day: timestamp.toLocaleDateString('id-ID', { weekday: 'long', timeZone: 'Asia/Jakarta' }),
+      jam: timestamp.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Jakarta',
+      }),
+      day: timestamp.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        timeZone: 'Asia/Jakarta',
+      }),
+    };
+
+    let pointsChange = 28; // Reward default +28 point for attending
+    let activity = `Absensi Hadir (${attendance.mapel})`;
+    let type: 'reward' | 'deduction' = 'reward';
+
+    // Cek telat absen (lewat 06:30)
+    // opsional: jika user mau lateness tetap -2 bisa dipertahankan, 
+    // tapi user minta "Hadir Mapel +28", jadi kita set +28 dulu.
+    
+    if (body.status === 'Alfa' || body.status === 'Izin' || body.status === 'Sakit') {
+      pointsChange = -27;
+      activity = `Absensi ${body.status} (${attendance.mapel})`;
+      type = 'deduction';
+    }
+
+    const historyEntry = {
+      activity,
+      points: pointsChange,
+      category: type,
+      timestamp: new Date(),
     };
 
     await this.studentModel.updateOne(
       { nis },
-      { $set: { status: attendance.status }, $push: { attendanceHistory: attendance } }
+      {
+        $set: { status: attendance.status },
+        $inc: { points: pointsChange },
+        $push: { 
+          attendanceHistory: attendance,
+          pointHistory: historyEntry,
+        },
+      },
     ).exec();
 
     return this.findOne(nis);
   }
 
   // ================= LOG PULANG =================
-  async createPulangLog(nis: string, timestampStr: string): Promise<Student> {
+  async createPulangLog(nis: string, timestampStr: string): Promise<any> {
     const student = await this.studentModel.findOne({ nis }).exec();
     if (!student) throw new NotFoundException('Siswa tidak ditemukan');
 
@@ -87,22 +148,33 @@ export class StudentsService {
       method: 'Siswa Self-Log',
       mapel: 'Selesai KBM',
       kelas: student.class,
-      jam: timestamp.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }),
-      day: timestamp.toLocaleDateString('id-ID', { weekday: 'long', timeZone: 'Asia/Jakarta' }),
+      jam: timestamp.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Jakarta',
+      }),
+      day: timestamp.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        timeZone: 'Asia/Jakarta',
+      }),
     };
 
     await this.studentModel.updateOne(
       { nis },
-      { $set: { status: 'Pulang', lastPulang: timestamp }, $push: { attendanceHistory: attendance } }
+      {
+        $set: { status: 'Pulang', lastPulang: timestamp },
+        $push: { attendanceHistory: attendance },
+      },
     ).exec();
 
     return this.findOne(nis);
   }
 
   // ================= UPDATE MANUAL =================
-  async updateManual(nis: string, status: string, teacherName: string): Promise<Student> {
+  async updateManual(nis: string, status: string, teacherName: string): Promise<any> {
     const student = await this.studentModel.findOne({ nis }).exec();
     if (!student) throw new NotFoundException('Siswa tidak ditemukan');
+
     const now = new Date();
     const attendance: any = {
       status,
@@ -110,35 +182,215 @@ export class StudentsService {
       method: `Manual by ${teacherName}`,
       mapel: 'Input Manual',
       kelas: student.class,
-      jam: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }),
-      day: now.toLocaleDateString('id-ID', { weekday: 'long', timeZone: 'Asia/Jakarta' }),
+      jam: now.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Jakarta',
+      }),
+      day: now.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        timeZone: 'Asia/Jakarta',
+      }),
     };
-    await this.studentModel.updateOne(
-      { nis },
-      { $set: { status }, $push: { attendanceHistory: attendance } }
-    ).exec();
+
+    let pointsChange = 0;
+    let activity = '';
+    let type: 'reward' | 'deduction' = 'deduction';
+
+    if (status === 'Alfa' || status === 'Izin') {
+      pointsChange = -27;
+      activity = `Absensi ${status} (Manual by ${teacherName})`;
+      type = 'deduction';
+    } else if (status === 'Hadir') {
+      pointsChange = 28;
+      activity = `Absensi Hadir (Manual by ${teacherName})`;
+      type = 'reward';
+    }
+
+    const updateOps: any = {
+      $set: { status },
+      $push: { attendanceHistory: attendance },
+    };
+
+    if (pointsChange !== 0) {
+      updateOps.$inc = { points: pointsChange };
+      updateOps.$push.pointHistory = {
+        activity,
+        points: pointsChange,
+        category: type,
+        timestamp: new Date(),
+      };
+    }
+
+    await this.studentModel.updateOne({ nis }, updateOps).exec();
+
     return this.findOne(nis);
   }
 
+  // ================= CLAIM VOUCHER =================
+  async claimVoucher(nis: string, voucherCode: string): Promise<any> {
+    const student = await this.studentModel.findOne({ nis }).exec();
+    if (!student) throw new NotFoundException('Siswa tidak ditemukan');
+
+    const points = 10;
+    const historyEntry = {
+      activity: `Klaim Voucher Code: ${voucherCode}`,
+      points: points,
+      category: 'reward' as const,
+      timestamp: new Date(),
+    };
+
+    await this.studentModel.updateOne(
+      { nis },
+      { 
+        $inc: { points },
+        $push: { pointHistory: historyEntry }
+      },
+    ).exec();
+
+    return this.findOne(nis);
+  }
+
+  // ================= UPDATE POINTS MANUAL =================
+  async updatePoints(nis: string, points: number): Promise<any> {
+    const student = await this.studentModel.findOne({ nis }).exec();
+    if (!student) throw new NotFoundException('Siswa tidak ditemukan');
+
+    const currentPoints = student.points !== undefined ? student.points : 100;
+    const diff = points - currentPoints;
+    const historyEntry = {
+      activity: 'Update Point Manual (Admin)',
+      points: diff,
+      category: diff > 0 ? ('reward' as const) : ('deduction' as const),
+      timestamp: new Date(),
+    };
+
+    await this.studentModel.updateOne(
+      { nis },
+      { 
+        $set: { points },
+        $push: { pointHistory: historyEntry }
+      }
+    ).exec();
+
+    return this.findOne(nis);
+  }
+
+  // ================= BULK UPDATE POINTS & VOUCHERS =================
+  async bulkUpdatePoints(data: { nis: string; points: number; vouchers: number; vouchersMapel?: number; vouchersAlfa?: number }[]): Promise<any> {
+    const promises = data.map(item => {
+      return this.studentModel.updateOne(
+        { nis: item.nis },
+        { 
+          $set: { 
+            points: item.points, 
+            vouchers: item.vouchers,
+            vouchersMapel: item.vouchersMapel || 0,
+            vouchersAlfa: item.vouchersAlfa || 0
+          } 
+        }
+      ).exec();
+    });
+    
+    await Promise.all(promises);
+    return { success: true, message: 'Data point and voucher updated' };
+  }
+
+  // ================= BUY VOUCHER (POINTS TO VOUCHER) =================
+  async buyVoucher(nis: string, cost: number, itemType = 'generic'): Promise<any> {
+    const student = await this.studentModel.findOne({ nis }).exec();
+    if (!student) throw new NotFoundException('Siswa tidak ditemukan');
+
+    if (student.points < cost) {
+      throw new BadRequestException('Point tidak cukup');
+    }
+
+    let voucherField = 'vouchers';
+    let activity = 'Pembelian Voucher Generic';
+    if (itemType === 'mapel') {
+      voucherField = 'vouchersMapel';
+      activity = 'Pembelian Voucher Absen Mapel';
+    } else if (itemType === 'alfa') {
+      voucherField = 'vouchersAlfa';
+      activity = 'Pembelian Voucher Izin/Alfa';
+    }
+
+    const historyEntry = {
+      activity,
+      points: -cost,
+      category: 'deduction' as const,
+      timestamp: new Date(),
+    };
+
+    const updateData: any = {
+      $inc: { 
+        points: -cost, 
+        [voucherField]: 1 
+      },
+      $push: { pointHistory: historyEntry }
+    };
+
+    await this.studentModel.updateOne({ nis }, updateData).exec();
+
+    return this.findOne(nis);
+  }
+
+
+
   // ================= RESET SEMUA =================
-  async resetAllAttendance(): Promise<Student[]> {
-    await this.studentModel.updateMany({}, { $set: { status: 'Belum Absen', attendanceHistory: [], lastPulang: null } });
+  async resetAllAttendance(): Promise<any[]> {
+    await this.studentModel.updateMany(
+      {},
+      {
+        $set: {
+          status: 'Belum Absen',
+          attendanceHistory: [],
+          lastPulang: null,
+        },
+      },
+    );
     return this.findAll();
   }
 
-  // ================= RESET 1 SISWA (FIXED ERROR) =================
-  async resetOneAttendance(nis: string): Promise<Student> {
+  // ================= RESET 1 SISWA =================
+  async resetOneAttendance(nis: string): Promise<any> {
     const student = await this.studentModel.findOne({ nis }).exec();
     if (!student) throw new NotFoundException('Siswa tidak ditemukan');
 
     await this.studentModel.updateOne(
       { nis },
+      {
+        $set: {
+          status: 'Belum Absen',
+          attendanceHistory: [],
+          lastPulang: null,
+        },
+      },
+    ).exec();
+
+    return this.findOne(nis);
+  }
+
+  // ================= ABSENCE PENALTY (NEW) =================
+  async absencePenalty(nis: string, type: string, description?: string): Promise<any> {
+    const student = await this.studentModel.findOne({ nis }).exec();
+    if (!student) throw new NotFoundException('Siswa tidak ditemukan');
+
+    const pointsChange = type === 'mapel' ? -12 : -27;
+    const activity = description || (type === 'mapel' ? 'Terlewat Mapel' : 'Pinalti Absensi');
+    
+    const historyEntry = {
+      activity,
+      points: pointsChange,
+      category: 'deduction' as const,
+      timestamp: new Date(),
+    };
+
+    await this.studentModel.updateOne(
+      { nis },
       { 
-        $set: { 
-          status: 'Belum Absen', 
-          attendanceHistory: [], 
-          lastPulang: null 
-        } 
+        $inc: { points: pointsChange },
+        $push: { pointHistory: historyEntry }
       }
     ).exec();
 
@@ -149,6 +401,7 @@ export class StudentsService {
   async remove(nis: string): Promise<{ message: string }> {
     const student = await this.studentModel.findOne({ nis }).exec();
     if (!student) throw new NotFoundException('Siswa tidak ditemukan');
+    
     await this.studentModel.deleteOne({ nis }).exec();
     return { message: 'Siswa berhasil dihapus' };
   }

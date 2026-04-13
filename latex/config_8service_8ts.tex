@@ -1,0 +1,45 @@
+\doxysection{src/\+config/\+config.service.\+ts File Reference}
+\hypertarget{config_8service_8ts}{}\label{config_8service_8ts}\index{src/config/config.service.ts@{src/config/config.service.ts}}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\doxymbox{\hyperlink{config_8service_8ts_a8dc242ae86ff2d4f6afe640d144897a1}{Injectable}} () export class Config\+Service
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\doxymbox{\hyperlink{config_8service_8ts_a59be084da8908b7d77ff34b25cd84488}{import}} \{ \doxymbox{\hyperlink{config_8service_8ts_a8dc242ae86ff2d4f6afe640d144897a1}{Injectable}} \} from \textquotesingle{}@nestjs/\+common\textquotesingle{}
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{config_8service_8ts_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{config_8service_8ts_a8dc242ae86ff2d4f6afe640d144897a1}\index{config.service.ts@{config.service.ts}!Injectable@{Injectable}}
+\index{Injectable@{Injectable}!config.service.ts@{config.service.ts}}
+\doxysubsubsection{\texorpdfstring{Injectable()}{Injectable()}}
+{\footnotesize\ttfamily \label{config_8service_8ts_a8dc242ae86ff2d4f6afe640d144897a1} 
+Injectable (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+Mengambil konfigurasi GPS dari Mongo\+DB. Jika tidak ada, fungsi ini akan membuat konfigurasi default. Menjamin nilai yang dikembalikan memiliki format radius yang benar. \begin{DoxyReturn}{Returns}
+\{Promise$<$any$>$\} Objek konfigurasi GPS untuk dua lokasi.
+\end{DoxyReturn}
+Memperbarui konfigurasi GPS di database. Mendukung pembaruan loc1, loc2, dan backward compatibility. 
+\begin{DoxyParams}{Parameters}
+{\em data} & Data konfigurasi baru yang dikirim dari klien. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\{Promise$<$any$>$\} Objek konfigurasi yang baru disimpan.
+\end{DoxyReturn}
+
+
+\label{doc-var-members}
+\Hypertarget{config_8service_8ts_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{config_8service_8ts_a59be084da8908b7d77ff34b25cd84488}\index{config.service.ts@{config.service.ts}!import@{import}}
+\index{import@{import}!config.service.ts@{config.service.ts}}
+\doxysubsubsection{\texorpdfstring{import}{import}}
+{\footnotesize\ttfamily \label{config_8service_8ts_a59be084da8908b7d77ff34b25cd84488} 
+import \{ \doxymbox{\hyperlink{config_8service_8ts_a8dc242ae86ff2d4f6afe640d144897a1}{Injectable}} \} from \textquotesingle{}@nestjs/\+common\textquotesingle{}}
+

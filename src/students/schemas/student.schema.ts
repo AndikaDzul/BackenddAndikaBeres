@@ -31,6 +31,31 @@ export class Student {
   @Prop({ default: 'Belum Absen' })
   status: string;
 
+  @Prop({ type: Number, default: 100 })
+  points: number;
+
+  @Prop({ type: Number, default: 0 })
+  vouchers: number;
+
+  @Prop({ type: Number, default: 0 })
+  vouchersMapel: number;
+
+  @Prop({ type: Number, default: 0 })
+  vouchersAlfa: number;
+
+  @Prop({
+    type: [
+      {
+        activity: String,
+        points: Number,
+        category: { type: String, enum: ['reward', 'deduction'] },
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
+    default: [],
+  })
+  pointHistory: any[];
+
   @Prop({ type: Date, default: null })
   lastPulang?: Date | null;
 

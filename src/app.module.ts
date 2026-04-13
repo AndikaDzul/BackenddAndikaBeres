@@ -9,6 +9,7 @@ import { TeachersModule } from './teachers/teachers.module';
 import { AdminsModule } from './admins/admins.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { ConfigModule } from './config/config.module';
+import { EvaluationsModule } from './evaluations/evaluations.module'; // Tambahkan ini
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ConfigModule } from './config/config.module';
     AdminsModule,
     SchedulesModule,
     ConfigModule,
+    EvaluationsModule, // Tambahkan ini di akhir list modul
   ],
   controllers: [],
   providers: [],

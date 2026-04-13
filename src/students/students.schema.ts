@@ -3,16 +3,6 @@ import { Document } from 'mongoose';
 
 export type StudentDocument = Student & Document;
 
-export interface Attendance {
-  status: string;
-  timestamp: Date;
-  method?: string;
-  mapel?: string;
-  jam?: string;
-  day?: string;
-  kelas?: string;
-}
-
 @Schema({ timestamps: true })
 export class Student {
   @Prop({ required: true, unique: true })
@@ -30,20 +20,24 @@ export class Student {
   @Prop({ default: 'Belum Absen' })
   status: string;
 
-  // Menambahkan properti lastPulang agar tersimpan di database
-  @Prop({ type: Date, default: null })
-  lastPulang: Date;
+  // Riwayat Penilaian Bintang
+  @Prop({
+    type: [
+      {
+        aspect: String,
+        stars: Number,
+        note: String,
+        teacherName: String,
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
+    default: [],
+  })
+  attitudeRatings: any[];
 
-  @Prop({ type: [{ 
-    status: String, 
-    timestamp: Date, 
-    method: String, 
-    mapel: String, 
-    jam: String, 
-    day: String,
-    kelas: String
-  }]})
-  attendanceHistory: Attendance[];
+  // Cache rata-rata untuk mempermudah Ranking
+  @Prop({ default: 0 })
+  averageStars: number;
 }
 
 export const StudentSchema = SchemaFactory.createForClass(Student);

@@ -12,6 +12,13 @@ export class AdminsService {
     private jwtService: JwtService
   ) {}
 
+  /**
+   * Mendaftarkan admin baru ke database.
+   * Melakukan validasi email unik dan enkripsi password.
+   * @param data Objek berisi name, email, dan password.
+   * @throws {BadRequestException} Jika email sudah terdaftar.
+   * @returns Promise yang berisi objek admin yang baru dibuat.
+   */
   async register(data: { name: string; email: string; password: string }) {
     const email = data.email.toLowerCase().trim()
 
@@ -32,6 +39,13 @@ export class AdminsService {
     return admin.save()
   }
 
+  /**
+   * Melakukan proses otentikasi admin.
+   * @param email Email admin.
+   * @param password Password admin.
+   * @throws {UnauthorizedException} Jika email tidak ditemukan atau password salah.
+   * @returns Objek yang berisi pesan sukses, token JWT, dan data profil admin.
+   */
   async login(email: string, password: string) {
     const normalizedEmail = email.toLowerCase().trim()
 

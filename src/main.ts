@@ -14,7 +14,7 @@ import * as fs from 'fs';
 export async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Prefix API (Penting: URL menjadi http://localhost:3000/api/evaluations)
+  // Prefix API (Penting: Agar URL menjadi /api/students)
   app.setGlobalPrefix('api');
 
   // PERBAIKAN: Tambahkan 'PUT' ke dalam methods agar Update bekerja

@@ -1,7 +1,6 @@
 import { Controller, Get, Post, Put, Body, Param, Delete, Logger, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { memoryStorage } from 'multer';
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-students.dto';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
@@ -178,24 +177,19 @@ export class StudentsController {
 
   @Post(':nis/upload-profile')
   @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
-        return cb(null, `${randomName}${extname(file.originalname)}`);
-      }
-    }),
+    storage: memoryStorage(),
     fileFilter: (req, file, cb) => {
       if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
         return cb(new Error('Hanya file gambar yang diizinkan!'), false);
       }
       cb(null, true);
     },
-    limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+    limits: { fileSize: 2 * 1024 * 1024 } // Limit to 2MB for DB storage
   }))
   async uploadProfile(@Param('nis') nis: string, @UploadedFile() file: any) {
-    this.logger.log(`POST /students/${nis}/upload-profile -> uploading image`);
-    return this.studentsService.updateProfileImage(nis, file.filename);
+    this.logger.log(`POST /students/${nis}/upload-profile -> uploading image to database`);
+    const base64Data = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+    return this.studentsService.updateProfileImage(nis, base64Data);
   }
 
   @Delete(':nis/point-history')

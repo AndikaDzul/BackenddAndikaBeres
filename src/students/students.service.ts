@@ -480,13 +480,13 @@ export class StudentsService {
   }
 
   // ================= UPDATE PROFILE IMAGE =================
-  async updateProfileImage(nis: string, filename: string): Promise<any> {
+  async updateProfileImage(nis: string, imageData: string): Promise<any> {
     const student = await this.studentModel.findOne({ nis }).exec();
     if (!student) throw new NotFoundException('Siswa tidak ditemukan');
 
     await this.studentModel.updateOne(
       { nis },
-      { $set: { profileImage: filename } }
+      { $set: { profileImage: imageData } }
     ).exec();
 
     return this.findOne(nis);

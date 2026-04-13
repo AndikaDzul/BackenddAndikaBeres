@@ -208,25 +208,40 @@ export class StudentsService {
 
     let pointsChange = 0;
     let activity = '';
-    let type: 'reward' | 'deduction' = 'deduction';
+    let category: 'reward' | 'deduction' = 'deduction';
     let usedVoucher = false;
+    let voucherField = '';
 
     if (status === 'Alfa' || status === 'Izin' || status === 'Sakit' || status === 'Alpha') {
       // Check for voucher protection
       if (student.vouchersAlfa > 0) {
         pointsChange = 0;
         activity = `Voucher Digunakan: Proteksi ${status} (Manual)`;
-        type = 'reward';
+        category = 'reward';
         usedVoucher = true;
+        voucherField = 'vouchersAlfa';
       } else {
         pointsChange = -27;
         activity = `Absensi ${status} (Manual by ${teacherName})`;
-        type = 'deduction';
+        category = 'deduction';
+      }
+    } else if (status === 'Terlewat Mapel') {
+      // Check for voucher protection (Mapel)
+      if (student.vouchersMapel > 0) {
+        pointsChange = 0;
+        activity = `Voucher Digunakan: Proteksi Terlewat Mapel (Manual)`;
+        category = 'reward';
+        usedVoucher = true;
+        voucherField = 'vouchersMapel';
+      } else {
+        pointsChange = -12;
+        activity = `Terlewat Mapel (Manual by ${teacherName})`;
+        category = 'deduction';
       }
     } else if (status === 'Hadir') {
       pointsChange = 28;
       activity = `Absensi Hadir (Manual by ${teacherName})`;
-      type = 'reward';
+      category = 'reward';
     }
 
     const updateOps: any = {
@@ -235,7 +250,7 @@ export class StudentsService {
     };
 
     if (usedVoucher) {
-      updateOps.$inc = { vouchersAlfa: -1 };
+      updateOps.$inc = { [voucherField]: -1 };
     }
 
     if (pointsChange !== 0 || usedVoucher) {
@@ -247,7 +262,7 @@ export class StudentsService {
       updateOps.$push.pointHistory = {
         activity,
         points: pointsChange,
-        category: type,
+        category: category,
         timestamp: new Date(),
       };
     }

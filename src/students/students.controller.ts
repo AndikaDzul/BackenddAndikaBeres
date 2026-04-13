@@ -184,7 +184,14 @@ export class StudentsController {
         const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
         return cb(null, `${randomName}${extname(file.originalname)}`);
       }
-    })
+    }),
+    fileFilter: (req, file, cb) => {
+      if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+        return cb(new Error('Hanya file gambar yang diizinkan!'), false);
+      }
+      cb(null, true);
+    },
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB
   }))
   async uploadProfile(@Param('nis') nis: string, @UploadedFile() file: any) {
     this.logger.log(`POST /students/${nis}/upload-profile -> uploading image`);

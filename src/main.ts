@@ -33,6 +33,11 @@ export async function bootstrap() {
     }),
   );
 
+  // Increase payload limit for images
+  const express = require('express');
+  app.use(express.json({ limit: '5mb' }));
+  app.use(express.urlencoded({ limit: '5mb', extended: true }));
+
   const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
 
   if (!isVercel) {

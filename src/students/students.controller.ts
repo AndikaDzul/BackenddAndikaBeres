@@ -1,4 +1,7 @@
-import { Controller, Get, Post, Put, Body, Param, Delete, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Delete, Logger, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-students.dto';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
@@ -171,6 +174,27 @@ export class StudentsController {
   ) {
     this.logger.log(`POST /students/${nis}/absence-penalty -> applying ${body.type} penalty`);
     return this.studentsService.absencePenalty(nis, body.type, body.description);
+  }
+
+  @Post(':nis/upload-profile')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: './uploads',
+      filename: (req, file, cb) => {
+        const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+        return cb(null, `${randomName}${extname(file.originalname)}`);
+      }
+    })
+  }))
+  async uploadProfile(@Param('nis') nis: string, @UploadedFile() file: any) {
+    this.logger.log(`POST /students/${nis}/upload-profile -> uploading image`);
+    return this.studentsService.updateProfileImage(nis, file.filename);
+  }
+
+  @Delete(':nis/point-history')
+  async clearPointHistory(@Param('nis') nis: string) {
+    this.logger.warn(`DELETE /students/${nis}/point-history -> clearing points history`);
+    return this.studentsService.clearPointHistory(nis);
   }
 
   @Delete(':nis')

@@ -56,6 +56,9 @@ export class Student {
   })
   pointHistory: any[];
 
+  @Prop({ type: String, default: null })
+  profileImage?: string;
+
   @Prop({ type: Date, default: null })
   lastPulang?: Date | null;
 

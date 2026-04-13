@@ -466,6 +466,32 @@ export class StudentsService {
     return this.findOne(nis);
   }
 
+  // ================= CLEAR POINT HISTORY =================
+  async clearPointHistory(nis: string): Promise<any> {
+    const student = await this.studentModel.findOne({ nis }).exec();
+    if (!student) throw new NotFoundException('Siswa tidak ditemukan');
+
+    await this.studentModel.updateOne(
+      { nis },
+      { $set: { pointHistory: [] } }
+    ).exec();
+
+    return this.findOne(nis);
+  }
+
+  // ================= UPDATE PROFILE IMAGE =================
+  async updateProfileImage(nis: string, filename: string): Promise<any> {
+    const student = await this.studentModel.findOne({ nis }).exec();
+    if (!student) throw new NotFoundException('Siswa tidak ditemukan');
+
+    await this.studentModel.updateOne(
+      { nis },
+      { $set: { profileImage: filename } }
+    ).exec();
+
+    return this.findOne(nis);
+  }
+
   // ================= DELETE SISWA =================
   async remove(nis: string): Promise<{ message: string }> {
     const student = await this.studentModel.findOne({ nis }).exec();

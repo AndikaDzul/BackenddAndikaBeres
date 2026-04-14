@@ -62,6 +62,9 @@ export class Student {
   @Prop({ type: Date, default: null })
   lastPulang?: Date | null;
 
+  @Prop({ type: [String], default: [] })
+  claimedTokens: string[];
+
   @Prop({
     type: [
       {

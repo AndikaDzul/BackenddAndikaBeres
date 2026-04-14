@@ -24,4 +24,28 @@ export class ConfigController {
   async saveGps(@Body() body: any) {
     return this.configService.saveGpsConfig(body);
   }
+
+  /**
+   * Mengambil semua token rahasia yang aktif (Untuk Admin).
+   */
+  @Get('tokens')
+  async getTokens() {
+    return this.configService.getTokens();
+  }
+
+  /**
+   * Menyimpan/Memperbarui daftar token rahasia (Untuk Admin).
+   */
+  @Post('tokens')
+  async saveTokens(@Body() body: { tokens: any[] }) {
+    return this.configService.saveTokens(body.tokens);
+  }
+
+  /**
+   * Siswa mengeklaim/Redeem token rahasia.
+   */
+  @Post('redeem')
+  async redeemToken(@Body() body: { nis: string; code: string }) {
+    return this.configService.redeemToken(body.nis, body.code);
+  }
 }

@@ -23,7 +23,6 @@ import { EvaluationsModule } from './evaluations/evaluations.module'; // Tambahk
         autoCreate: true,
         serverSelectionTimeoutMS: 5000, // Timeout dalam 5 detik agar tidak menggantung lama
         socketTimeoutMS: 45000, 
-        family: 4 // Memaksa menggunakan IPv4 untuk menghindari masalah DNS koneksi lokal
       },
     ),
 

@@ -36,6 +36,18 @@ export class Config {
 
   @Prop({ type: Number, default: 50 })
   radius: number;
+
+  @Prop({
+    type: [{
+      code: { type: String, required: true },
+      mapelReward: { type: Number, default: 0 },
+      alfaReward: { type: Number, default: 0 },
+      pointReward: { type: Number, default: 0 },
+      isActive: { type: Boolean, default: true }
+    }],
+    default: []
+  })
+  secretTokens: any[];
 }
 
 export const ConfigSchema = SchemaFactory.createForClass(Config);

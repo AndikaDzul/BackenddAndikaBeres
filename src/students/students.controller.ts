@@ -214,4 +214,13 @@ export class StudentsController {
     // Memanggil service untuk menghapus siswa
     return this.studentsService.remove(nis);
   }
-}
+
+  @Post(':nis/game-reward')
+  async gameReward(
+    @Param('nis') nis: string,
+    @Body() body: { points: number; gameName: string },
+  ) {
+    this.logger.log(`POST /students/${nis}/game-reward -> student wins ${body.gameName} for ${body.points} points`);
+    return this.studentsService.gameReward(nis, body.points, body.gameName);
+  }
+}

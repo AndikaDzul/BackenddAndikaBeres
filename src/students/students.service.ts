@@ -290,6 +290,12 @@ export class StudentsService {
     return this.findOne(nis);
   }
 
+  // ================= APPLY TOKEN REWARD (HELPER) =================
+  async applyTokenReward(nis: string, updateData: any): Promise<any> {
+    await this.studentModel.updateOne({ nis }, updateData).exec();
+    return this.findOne(nis);
+  }
+
   // ================= CLAIM VOUCHER =================
   async claimVoucher(nis: string, voucherCode: string): Promise<any> {
     const student = await this.studentModel.findOne({ nis }).exec();
@@ -517,5 +523,31 @@ export class StudentsService {
     
     await this.studentModel.deleteOne({ nis }).exec();
     return { message: 'Siswa berhasil dihapus' };
+  }
+
+  // ================= GAME REWARD (NEW) =================
+  async gameReward(nis: string, points: number, gameName: string): Promise<any> {
+    const student = await this.studentModel.findOne({ nis }).exec();
+    if (!student) throw new NotFoundException('Siswa tidak ditemukan');
+
+    const pointsNum = Number(points);
+    const isPenalty = pointsNum < 0;
+
+    const historyEntry = {
+      activity: isPenalty ? `Pinalti Game: ${gameName}` : `Hadiah Game: ${gameName}`,
+      points: pointsNum,
+      category: isPenalty ? ('deduction' as const) : ('reward' as const),
+      timestamp: new Date(),
+    };
+
+    await this.studentModel.updateOne(
+      { nis },
+      { 
+        $inc: { points: pointsNum },
+        $push: { pointHistory: historyEntry }
+      },
+    ).exec();
+
+    return this.findOne(nis);
   }
 }

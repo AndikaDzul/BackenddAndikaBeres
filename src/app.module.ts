@@ -19,7 +19,12 @@ import { EvaluationsModule } from './evaluations/evaluations.module'; // Tambahk
     // Koneksi MongoDB
     MongooseModule.forRoot(
       process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/absensi',
-      { autoCreate: true },
+      { 
+        autoCreate: true,
+        serverSelectionTimeoutMS: 5000, // Timeout dalam 5 detik agar tidak menggantung lama
+        socketTimeoutMS: 45000, 
+        family: 4 // Memaksa menggunakan IPv4 untuk menghindari masalah DNS koneksi lokal
+      },
     ),
 
     // App Modules

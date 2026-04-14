@@ -18,6 +18,25 @@ export class EvaluationsService {
     return this.evaluationModel.find({ studentNis }).sort({ createdAt: -1 }).exec();
   }
 
+  async getLatestEvaluationsMap(studentNisList: string[]): Promise<Record<string, Evaluation>> {
+    const latestEvals = await this.evaluationModel.aggregate([
+      { $match: { studentNis: { $in: studentNisList } } },
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: '$studentNis',
+          evaluation: { $first: '$$ROOT' },
+        },
+      },
+    ]);
+
+    const resultMap: Record<string, Evaluation> = {};
+    for (const item of latestEvals) {
+      resultMap[item._id] = item.evaluation;
+    }
+    return resultMap;
+  }
+
   // METHOD UPDATE UNTUK EDIT PENILAIAN
   async update(id: string, data: any): Promise<Evaluation> {
     const updated = await this.evaluationModel

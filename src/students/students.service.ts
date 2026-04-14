@@ -33,20 +33,14 @@ export class StudentsService {
   // ================= GET ALL SISWA (DENGAN PENILAIAN) =================
   async findAll(): Promise<any[]> {
     const students = await this.studentModel.find().exec();
+    const nisList = students.map(s => s.nis);
 
-    const studentsWithEvaluation = await Promise.all(
-      students.map(async (student) => {
-        const studentObj = student.toObject();
-        const evaluations = await this.evaluationsService.findByStudent(student.nis);
-        return {
-          ...studentObj,
-          // Mengambil evaluasi terbaru (index 0 jika diurutkan descending di service)
-          lastEvaluation: evaluations.length > 0 ? evaluations[0] : null,
-        };
-      }),
-    );
+    const evaluationsMap = await this.evaluationsService.getLatestEvaluationsMap(nisList);
 
-    return studentsWithEvaluation;
+    return students.map((student) => ({
+      ...student.toObject(),
+      lastEvaluation: evaluationsMap[student.nis] || null,
+    }));
   }
 
   // ================= GET ONE SISWA (DENGAN PENILAIAN) =================
@@ -69,8 +63,11 @@ export class StudentsService {
     const match = await bcrypt.compare(password, studentDoc.password);
     if (!match) return null;
 
-    // Menggunakan findOne(nis) agar data login sudah termasuk lastEvaluation
-    return this.findOne(nis);
+    const evaluations = await this.evaluationsService.findByStudent(nis);
+    return {
+      ...studentDoc.toObject(),
+      lastEvaluation: evaluations.length > 0 ? evaluations[0] : null,
+    };
   }
 
   // ================= ABSENSI QR =================

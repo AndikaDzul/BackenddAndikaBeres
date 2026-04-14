@@ -14,7 +14,7 @@ export type EvaluationDocument = Evaluation & Document;
 
 @Schema({ timestamps: true })
 export class Evaluation {
-  @Prop({ required: true })
+  @Prop({ required: true, index: true })
   studentNis: string;
 
   @Prop({ required: true })

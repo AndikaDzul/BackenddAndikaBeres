@@ -13,6 +13,12 @@ export class StudentsController {
 
   constructor(private readonly studentsService: StudentsService) {}
 
+  @Get('leaderboard')
+  getLeaderboard() {
+    this.logger.log('GET /students/leaderboard -> mengambil data peringkat');
+    return this.studentsService.getLeaderboard(100); // Ambil top 100 untuk performa
+  }
+
   @Get()
   findAll() {
 
@@ -21,7 +27,6 @@ export class StudentsController {
     // akan muncul log di terminal untuk memastikan request masuk ke controller
     this.logger.log('GET /students -> mengambil semua data siswa');
 
-    // Memanggil service untuk mengambil semua data siswa dari database
     return this.studentsService.findAll();
   }
 

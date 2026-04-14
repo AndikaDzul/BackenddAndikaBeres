@@ -22,7 +22,7 @@ export class Student {
   @Prop({ required: true })
   name: string;
 
-  @Prop()
+  @Prop({ index: true })
   class: string;
 
   @Prop({ required: true })
@@ -31,7 +31,7 @@ export class Student {
   @Prop({ default: 'Belum Absen' })
   status: string;
 
-  @Prop({ type: Number, default: 100 })
+  @Prop({ type: Number, default: 100, index: true })
   points: number;
 
   @Prop({ type: Number, default: 0 })

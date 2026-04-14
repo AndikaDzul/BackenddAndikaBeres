@@ -31,10 +31,31 @@ export class StudentsService {
   }
 
   // ================= GET ALL SISWA (DENGAN PENILAIAN) =================
+  // Dioptimasi dengan project (-) untuk menghilangkan field berat (history/image) agar tidak lag
   async findAll(): Promise<any[]> {
-    const students = await this.studentModel.find().exec();
+    const students = await this.studentModel.find()
+      .select('-attendanceHistory -pointHistory -profileImage')
+      .exec();
+      
     const nisList = students.map(s => s.nis);
 
+    const evaluationsMap = await this.evaluationsService.getLatestEvaluationsMap(nisList);
+
+    return students.map((student) => ({
+      ...student.toObject(),
+      lastEvaluation: evaluationsMap[student.nis] || null,
+    }));
+  }
+
+  // ================= GET RANKING/LEADERBOARD =================
+  async getLeaderboard(limit = 50): Promise<any[]> {
+    const students = await this.studentModel.find()
+      .sort({ points: -1 })
+      .limit(limit)
+      .select('nis name class points status')
+      .exec();
+
+    const nisList = students.map(s => s.nis);
     const evaluationsMap = await this.evaluationsService.getLatestEvaluationsMap(nisList);
 
     return students.map((student) => ({
